@@ -7,11 +7,12 @@
 
 import SwiftUI
 
-let primaryColor = Color.init(red: 0, green: 116/255, blue: 178/255, opacity: 1.0)
+let primaryColor = Color.init(red: 45/255, green: 0, blue: 247/255, opacity: 1.0)
 
 struct ContentView: View {
-    @State var finalValue:String = "Digital Curry Recipe"
-    @State var calExpression: [String] = []
+    @State var finalValue:String = "Hello, Calculator!"
+    @State var calcExpression: [String] = []
+    @State var noBeingEntered: String = ""
     
     let rows = [
         ["7", "8", "9" ,"÷"],
@@ -22,13 +23,14 @@ struct ContentView: View {
     
     var body: some View {
         VStack {
+            
             VStack {
                 Text(self.finalValue)
                     .font(Font.custom("HelveticaNeue-Thin", size: 78))
                     .frame(idealWidth: 100, maxWidth: .infinity, idealHeight: 100, maxHeight: .infinity, alignment: .center)
                     .foregroundColor(Color.white)
                 
-                Text(flattenTheExpression(exps: calExpression))
+                Text(flattenTheExpression(exps: calcExpression))
                     .font(Font.custom("HelveticaNeue-Thin", size: 24))
                     .frame(alignment: Alignment.bottomTrailing)
                     .foregroundColor(Color.white)
@@ -39,13 +41,37 @@ struct ContentView: View {
             .background(primaryColor)
             
             
-            VStack {
+            VStack(alignment: .leading, spacing: 0) {
                 ForEach(rows, id: \.self) { row in
                     HStack(alignment: .top, spacing: 0) {
                         Spacer(minLength: 13)
                         ForEach(row, id: \.self) { column in
                             Button(action: {
-                                
+                                if column == "=" {
+                                    self.calcExpression = []
+                                    self.noBeingEntered = ""
+                                    return
+                                } else if checkIfOperator(str: column)  {
+                                    self.calcExpression.append(column)
+                                    self.noBeingEntered = ""
+                                } else {
+                                    self.noBeingEntered.append(column)
+                                    if self.calcExpression.count == 0 {
+                                        self.calcExpression.append(self.noBeingEntered)
+                                    } else {
+                                        if !checkIfOperator(str: self.calcExpression[self.calcExpression.count-1]) {
+                                            self.calcExpression.remove(at: self.calcExpression.count-1)
+                                        }
+
+                                        self.calcExpression.append(self.noBeingEntered)
+                                    }
+                                }
+
+                                self.finalValue = processExpression(exp: self.calcExpression)
+                                // This code ensures that future operations are done on evaluated result rather than evaluating the expression from scratch.
+                                if self.calcExpression.count > 3 {
+                                    self.calcExpression = [self.finalValue, self.calcExpression[self.calcExpression.count - 1]]
+                                }
                             }, label: {
                                 Text(column)
                                     .font(.system(size: getFontSize(btnTxt: column)))
@@ -53,7 +79,7 @@ struct ContentView: View {
                             })
                             .foregroundColor(Color.white)
                             .background(getBackground(str: column))
-                            .mask(CustomShape(radius: 40, value: column))
+                            .mask(CustomShape(radius: 45, value: column))
                         }
                     }
                 }
@@ -66,11 +92,7 @@ struct ContentView: View {
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
-}
+
 
 func flattenTheExpression(exps: [String]) -> String {
     var calExp = ""
@@ -131,4 +153,40 @@ func checkIfOperator(str: String) -> Bool {
         return true
     }
     return false
+}
+
+func processExpression(exp: [String]) -> String {
+    if exp.count < 3 {
+        return "0.0"
+    }
+    
+    var firstOperand = Double(exp[0])
+    var secondOperand = Double("0.0")
+    
+    let expSize = exp.count
+    
+    for i in (1...expSize-2) {
+        secondOperand = Double(exp[i+1])
+        
+        switch exp[i] {
+        case "+":
+            firstOperand! += secondOperand!
+        case "-":
+            firstOperand! -= secondOperand!
+        case "x":
+            firstOperand! *= secondOperand!
+        case "÷":
+            firstOperand! /= secondOperand!
+        default:
+            print("Skipping the rest")
+        }
+    }
+    
+    return String(format: "%.1f", firstOperand!)
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
+    }
 }
